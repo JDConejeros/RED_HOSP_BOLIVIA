@@ -1,0 +1,23 @@
+Enlaces de interés: 
+
+Para que lo tengamos en cuenta si decidimos georeferenciar.
+ 
+https://cran.rstudio.com/web/packages/mapsapi/vignettes/intro.html
+ 
+https://www.r-bloggers.com/2023/03/how-to-geocode-in-r-for-free/
+ 
+https://cloud.r-project.org/web/packages/tidygeocoder/readme/README.html
+ 
+https://www.sesync.org/resources/geocoding-r
+ 
+https://www.esri.com/arcgis-blog/products/developers/announcements/geocode-from-r-using-arcgisgeocode/
+ 
+https://rpubs.com/michaeldgarber/geocode
+ 
+https://rpubs.com/bastimapache/mapa_openstreetmap
+ 
+Red + Mapas: https://cran.r-project.org/web/packages/netmap/vignettes/netmap.html
+
+Esto también: https://rpubs.com/HAVB/georef
+ 
+https://cloud.r-project.org/web/packages/opencage/vignettes/opencage.html
