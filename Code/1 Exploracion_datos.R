@@ -229,6 +229,6 @@ write_xlsx(traf3_o, "Output/traf3_o.xlsx")
 
 # Tabla para tasas -------------------------------------------------------------
 
-# Estaria bacan hacerla altiro aqui pero no se me ocurrio como xd
+
 
 
