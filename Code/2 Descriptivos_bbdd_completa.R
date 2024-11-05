@@ -75,9 +75,10 @@ conteo2 <- filter(recibidos, dummy == c("Trasladado")) %>%
   na.omit()
 
 # Exportar conteos en una hoja excel
-nombres1 <- list("Enviados" = conteo1, "Recibidos" = conteo2)
+lista1 <- list("Enviados" = conteo1, "Recibidos" = conteo2)
 
-openxlsx::write.xlsx(nombres1, file = "Output/conteos.xlsx")
+openxlsx::write.xlsx(lista1, file = "Output/conteos.xlsx")
+
 
 ## Tasas -------------------------------------------------------------------
 
@@ -100,11 +101,45 @@ tasas <- tasas %>% mutate(total = transferidos + referidos,
                           porc_traf = tasa_traf * 100)
 
 
+## Conteos variables secundarias -------------------------------------------
+anio_e <- enviados %>%
+  group_by(anio) %>%
+  summarise(Frecuencia = n()
+  )
 
+sexo_e <- enviados %>%
+  group_by(sexo) %>%
+  summarise(Frecuencia = n()
+  )
 
+edad_e <- enviados %>%
+  group_by(edad) %>%
+  summarise(Frecuencia = n()
+  )
 
+anio_r <- recibidos %>%
+  group_by(anio) %>%
+  summarise(Frecuencia = n()
+  )
 
+sexo_r <- recibidos %>%
+  group_by(sexo) %>%
+  summarise(Frecuencia = n()
+  )
 
+edad_r <- recibidos %>%
+  group_by(edad) %>%
+  summarise(Frecuencia = n()
+  )
+
+lista2 <- list("Año_enviados"   = anio_e,
+               "Sexo_enviados"  = sexo_e,
+               "Edad_enviados"  = edad_e,
+               "Año_recibidos"  = anio_r,
+               "Sexo_recibidos" = sexo_r,
+               "Edad_recibidos" = edad_r)
+
+openxlsx::write.xlsx(lista2, file = "Output/variables.xlsx")
 
 
 
