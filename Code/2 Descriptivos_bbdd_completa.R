@@ -4,7 +4,7 @@ library(dplyr)
 library(kableExtra)
 library(knitr)
 library(readxl)
-library(writexl)
+library(openxlsx)
 library(janitor)
 
 list.files("Input/") # Vemos los files
@@ -65,15 +65,19 @@ recibidos <- recibidos %>%
 ## Conteos -----------------------------------------------------------------
 
 conteo1 <- filter(enviados, dummy == c("Trasladado")) %>%
-  group_by(eess_emisor, anio, transferido_a_recodif) %>%
+  group_by(eess_emisor, transferido_a_recodif) %>%
   summarise(Frecuencia = n()) %>%
   na.omit()
 
 conteo2 <- filter(recibidos, dummy == c("Trasladado")) %>%
-  group_by(eess_receptor, anio, referencia_de) %>%
+  group_by(eess_receptor, referencia_de) %>%
   summarise(Frecuencia = n()) %>%
   na.omit()
 
+# Exportar conteos en una hoja excel
+nombres1 <- list("Enviados" = conteo1, "Recibidos" = conteo2)
+
+openxlsx::write.xlsx(nombres1, file = "Output/conteos.xlsx")
 
 ## Tasas -------------------------------------------------------------------
 
@@ -94,5 +98,21 @@ tasas <- tasas %>% mutate(total = transferidos + referidos,
                           tasa_traf = transferidos / total,
                           porc_ref = tasa_ref * 100,
                           porc_traf = tasa_traf * 100)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
