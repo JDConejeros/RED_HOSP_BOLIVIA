@@ -1,11 +1,16 @@
 # Segundo avance: Estadisticos descriptivos con bases completas
-
+rm(list=ls())
 library(dplyr)
 library(kableExtra)
 library(knitr)
 library(readxl)
 library(openxlsx)
 library(janitor)
+library(tidyr)
+library(igraph)
+library(ggplot2)
+library(ggrepel)
+library(tibble)
 
 list.files("Input/") # Vemos los files
 
@@ -16,61 +21,109 @@ enviados  <- rio::import("Input/BBDD_Ref_enviadas v1.xlsx")  %>% clean_names()
 recibidos <- rio::import("Input/BBDD_Ref_recibidas v1.xlsx") %>% clean_names() %>%
   filter(., anio %in% c("2014", "2019", "2023"))
 
+enviados_hosp <- rio::import("Input/Hosp_ref_enviadas_categorias.xlsx", sheet="Enviados") %>% clean_names()
+recibidos_hosp <- rio::import("Input/Hosp_ref_enviadas_categorias.xlsx", sheet="Recibidos") %>% clean_names()
+
 
 ## Binaria de estaticos/referidos ------------------------------------------
 
 ## Homologar nombres
  # Aqui homologue algunos nombres solamente, para poder armar el filtro de transferidos o estaticos
 
-enviados <- enviados %>% mutate(
-  transferido_a_recodif = 
-    case_when(transferido_a_recodif == "HOSPITAL DEL NORTE" ~ "H_ALTO_NORTE",
-              transferido_a_recodif %in% c("HOSPITAL EL ALTO SUR", "HOSPITAL DE EL ALTO SUR") ~ "H_ALTO_SUR",
-              transferido_a_recodif == "HOSPITAL MUNICIPAL BOLIVIANO HOLANDES" ~ "H_HOLANDES",
-              transferido_a_recodif == "H_Korea" ~ "HOSPITAL MUNICIPAL BOLIVIANO COREANO",
-              transferido_a_recodif == "H_LOS_ANDES" ~ "HOSP.LOS ANDES",
-              TRUE ~ transferido_a_recodif))
-
-recibidos <- recibidos %>% mutate(
-  eess_receptor = 
-    case_when(eess_receptor == "Hospital El Alto Norte" ~ "H_ALTO_NORTE",
-              eess_receptor == "Hospital El Alto Sur" ~ "H_ALTO_SUR",
-              TRUE ~ eess_receptor),
-  referencia_de = 
-    case_when(referencia_de == "HOSPITAL DE CLINICAS" ~ "Hospital de Clinicas",
-              referencia_de == "HOSPITAL DEL NIÑO" ~ "Hospital del Niño",
-              referencia_de == "HOSPITAL UNIVERSITARIO NUESTRA SEÑORA DE LA PAZ" ~ "HOSPITAL UNIVERSITARIO NUESTRA SEÑORA DE LA PAZ",
-              referencia_de == "HOSPITAL DE LA MUJER" ~ "Hospital de la Mujer",
-              referencia_de %in% c("HOSPITAL DEL NORTE","LA PAZ - EL ALTO - HOSPITAL GENERAL : HOSPITAL DEL NORTE") ~ "H_ALTO_NORTE",
-              referencia_de %in% c("HOSPITAL DE EL ALTO SUR","LA PAZ - EL ALTO - HOSPITAL GENERAL : HOSPITAL DE EL ALTO SUR") ~ "H_ALTO_SUR",
-              referencia_de %in% c("HOSPITAL VILLA DOLORES","LA PAZ - EL ALTO - HOSPITAL BASICO : HOSPITAL VILLA DOLORES ") ~ "HOSPITAL VILLA DOLORES",
-              TRUE ~ referencia_de))
-
-
-## Crear variable binaria
+### Enviados -----
+glimpse(enviados)
+glimpse(enviados_hosp)
 
 enviados <- enviados %>% 
-  mutate(dummy = case_when(eess_emisor == transferido_a_recodif ~ 1,
-                           transferido_a_recodif == "SIN DATO" ~ NA,
-                           eess_emisor != transferido_a_recodif ~ 0),
-         dummy = factor(dummy, labels = c("Trasladado", "Estatico")))
+  select(1:16)
+
+enviados <- enviados %>%  
+  left_join(select(enviados_hosp, eess_emisor, nombre_ajustado_emisor), by="eess_emisor", multiple="first") %>% 
+  left_join(select(enviados_hosp, transferido_a_recodif, nombre_ajustado_transferido), by="transferido_a_recodif", multiple="first") 
+  
+enviados <- enviados %>% 
+  select(-eess_emisor, -transferido_a_recodif) %>% 
+  rename(eess_emisor=nombre_ajustado_emisor,
+         transferido_a=nombre_ajustado_transferido,
+         fecha=fecha_envio) %>% 
+  select(-c(municipio,transferido_a_original, referido_de))
+  
+### Recibidos -----
+glimpse(recibidos)
+glimpse(recibidos_hosp)
+
+recibidos <- recibidos %>%  
+  left_join(select(recibidos_hosp, eess_receptor, nombre_ajustado_receptor), by="eess_receptor", multiple="first") %>% 
+  left_join(select(recibidos_hosp, referencia_de, nombre_ajustado_referencia), by="referencia_de", multiple="first")
 
 recibidos <- recibidos %>% 
-  mutate(dummy = case_when(eess_receptor == referencia_de ~ 1,
+  select(-eess_receptor, -referencia_de) %>% 
+  rename(eess_receptor=nombre_ajustado_receptor,
+         referencia_de=nombre_ajustado_referencia)
+
+
+### Variable binaria -----
+
+enviados <- enviados %>% 
+  mutate(estatico = case_when(eess_emisor == transferido_a ~ 1,
+                           transferido_a == "SIN DATO" ~ NA,
+                           eess_emisor != transferido_a ~ 0),
+         estatico = factor(estatico, labels = c("Trasladado", "Estatico")))
+
+enviados <- enviados %>% 
+  mutate(edad=as.numeric(edad))
+
+recibidos <- recibidos %>% 
+  mutate(estatico = case_when(eess_receptor == referencia_de ~ 1,
                            referencia_de == "SIN DATO" ~ NA,
                            eess_receptor != referencia_de ~ 0),
-         dummy = factor(dummy, labels = c("Trasladado", "Estatico")))
+         estatico = factor(estatico, labels = c("Trasladado", "Estatico")))
 
+glimpse(enviados)
+glimpse(recibidos)
+colnames(enviados)
+colnames(recibidos)
+
+haven::write_dta(enviados, "Output/BBDD_ref_enviadas_v1.dta")
+haven::write_dta(recibidos, "Output/BBDD_ref_recibidas_v1.dta")
+writexl::write_xlsx(enviados, "Output/BBDD_ref_enviadas_v1.xlsx")
+writexl::write_xlsx(recibidos, "Output/BBDD_ref_recibidas_v1.xlsx")
 
 ## Conteos -----------------------------------------------------------------
 
-conteo1 <- filter(enviados, dummy == c("Trasladado")) %>%
-  group_by(eess_emisor, transferido_a_recodif) %>%
-  summarise(Frecuencia = n()) %>%
-  na.omit()
+## Ingresos por año hospitales
 
-conteo2 <- filter(recibidos, dummy == c("Trasladado")) %>%
-  group_by(eess_receptor, referencia_de) %>%
+tab1 <- enviados %>% 
+  group_by(eess_emisor, anio) %>%
+  summarise(frecuencia = n()) %>%
+  na.omit() 
+
+tab2 <- recibidos %>% 
+  group_by(eess_receptor, anio) %>%
+  summarise(frecuencia = n()) %>%
+  na.omit() 
+
+tab1 <- tab1 %>% left_join(tab2, by=c("eess_emisor"="eess_receptor", "anio"))
+tab1$frecuencia <- rowSums(tab1[, c("frecuencia.x", "frecuencia.y")], na.rm = TRUE) 
+
+tab1 <- tab1 %>% select(-c("frecuencia.x", "frecuencia.y"))
+
+tab1 <- tab1 %>% 
+  pivot_wider(names_from = anio,
+              values_from = frecuencia)
+
+lista1 <- list("Enviados" = tab1, "Recibidos" = tab2)
+
+openxlsx::write.xlsx(lista1, file = "Output/ingresos.xlsx")
+
+
+conteo1 <- filter(enviados, estatico == c("Trasladado")) %>%
+  group_by(anio, eess_emisor, transferido_a) %>%
+  summarise(Frecuencia = n()) %>%
+  na.omit() 
+
+conteo2 <- filter(recibidos, estatico == c("Trasladado")) %>%
+  group_by(anio, eess_receptor, referencia_de) %>%
   summarise(Frecuencia = n()) %>%
   na.omit()
 
@@ -82,17 +135,26 @@ openxlsx::write.xlsx(lista1, file = "Output/conteos.xlsx")
 
 ## Tasas -------------------------------------------------------------------
 
-tasa1 <- filter(enviados, dummy == c("Trasladado")) %>%
-  group_by(anio) %>%
+tasa1 <- filter(enviados, estatico == c("Trasladado")) %>%
+  group_by(anio, eess_emisor) %>%
   summarise(transferidos = n()
-            )
+            ) %>% 
+  mutate(tipo="Transferido") %>% 
+  rename(hospital=eess_emisor) %>% 
+  rename(n=transferidos)
+  
 
-tasa2 <- filter(recibidos, dummy == c("Trasladado")) %>%
-  group_by(anio) %>%
+tasa2 <- filter(recibidos, estatico == c("Trasladado")) %>%
+  group_by(anio, eess_receptor) %>%
   summarise(referidos = n()
-            )
+            ) %>% 
+  mutate(tipo="Referido") %>% 
+  rename(hospital=eess_receptor) %>% 
+  rename(n=referidos)
 
-tasas <- merge(tasa1, tasa2, by = c("anio"))
+tasa1 <- tasa1 %>% bind_rows(tasa2)
+
+tasas <- left_join(tasa1, tasa2, by = c("anio"))
 
 tasas <- tasas %>% mutate(total = transferidos + referidos,
                           tasa_ref = referidos / total,
@@ -101,35 +163,56 @@ tasas <- tasas %>% mutate(total = transferidos + referidos,
                           porc_traf = tasa_traf * 100)
 
 
+
+openxlsx::write.xlsx(tasas, file = "Output/tasas.xlsx")
+openxlsx::write.xlsx(tasa1, file = "Output/tasas_ajustadas.xlsx")
+
+a <- enviados %>% 
+  group_by(anio) %>% 
+  summarise(n1=n())
+
+b <- recibidos %>% 
+  group_by(anio) %>% 
+  summarise(n2=n())
+
+a <- a %>% left_join(b, by="anio") %>% 
+  summarise(total=n1+n2)
+
 ## Conteos variables secundarias -------------------------------------------
 anio_e <- enviados %>%
   group_by(anio) %>%
-  summarise(Frecuencia = n()
-  )
+  summarise(frecuencia = n()
+  )  %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia))
 
 sexo_e <- enviados %>%
   group_by(sexo) %>%
-  summarise(Frecuencia = n()
-  )
+  summarise(frecuencia = n()
+  ) %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia))
 
 edad_e <- enviados %>%
-  group_by(edad) %>%
-  summarise(Frecuencia = n()
-  )
+  summarise(media=mean(edad, na.rm=TRUE)
+  ) 
 
 anio_r <- recibidos %>%
   group_by(anio) %>%
-  summarise(Frecuencia = n()
-  )
+  summarise(frecuencia = n()
+  ) %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia))
 
 sexo_r <- recibidos %>%
   group_by(sexo) %>%
-  summarise(Frecuencia = n()
-  )
+  summarise(frecuencia = n()
+  ) %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia))
 
 edad_r <- recibidos %>%
-  group_by(edad) %>%
-  summarise(Frecuencia = n()
+  summarise(media=mean(edad, na.rm=TRUE)
   )
 
 lista2 <- list("Año_enviados"   = anio_e,
@@ -143,11 +226,313 @@ openxlsx::write.xlsx(lista2, file = "Output/variables.xlsx")
 
 
 
+# Matriz de flujo para transferencias
+matriz_transferencias <- conteo1 %>%
+  select(anio, eess_emisor, transferido_a, Frecuencia) %>%
+  pivot_wider(names_from = transferido_a, values_from = Frecuencia, values_fill = 0)
+
+# Matriz de flujo para referencias
+matriz_referencias <- conteo2 %>%
+  select(anio, eess_receptor, referencia_de, Frecuencia) %>%
+  pivot_wider(names_from = referencia_de, values_from = Frecuencia, values_fill = 0)
 
 
+### RED -----
+
+# Crear una lista para almacenar los grafos de cada año
+grafos_por_anio <- list()
+
+# Listado de años únicos en los datos
+anios <- unique(c(conteo1$anio, conteo2$anio))
+
+# Iterar sobre cada año para construir los grafos
+for (anio in anios) {
+  # Filtrar datos por año
+  datos_transferencias <- conteo1 %>%
+    filter(anio == !!anio) %>%
+    rename(emisor = eess_emisor, receptor = transferido_a) %>%
+    select(emisor, receptor, Frecuencia)
+  
+  datos_referencias <- conteo2 %>%
+    filter(anio == !!anio) %>%
+    rename(emisor = referencia_de, receptor = eess_receptor) %>%
+    select(emisor, receptor, Frecuencia)
+  
+  # Unir los datos de transferencias y referencias
+  datos_enlaces <- bind_rows(datos_transferencias, datos_referencias) %>%
+    group_by(emisor, receptor) %>%
+    summarise(peso = sum(Frecuencia, na.rm = TRUE)) %>%
+    ungroup()
+  
+  # Crear el grafo de igraph
+  grafo <- graph_from_data_frame(datos_enlaces, directed = TRUE)
+  
+  # Agregar el grafo a la lista
+  grafos_por_anio[[as.character(anio)]] <- grafo
+}
+
+net_2014 <- grafos_por_anio[["2014"]]
+net_2019 <- grafos_por_anio[["2019"]]
+net_2023 <- grafos_por_anio[["2023"]]
+
+nodos_resaltados <- c("Hospital Municipal Boliviano Coreano",  
+                      "Hospital Municipal Boliviano Holandes",
+                      "Hospital Municipal Los Andes",
+                      "Hospital El Alto Norte",
+                      "Hospital El Alto Sur", 
+                      "Hospital de la Mujer", 
+                      "Hospital de Clinicas")
 
 
+plot_base <- ggnet2(net_2014,
+                    size = 2, 
+                    shape = 15,
+                    max_size = 3,  
+                    edge.size = 0.5, 
+                    edge.color = "grey",
+                    node.color = "color_nodo",
+                    node.alpha = 1,
+                    label = FALSE)
+
+# Extraer las posiciones de los nodos y almacenarlas en un data frame
+nodos_pos <- plot_base$data
+
+# Agregar una columna de estilo para negrita y tamaño de fuente en función de nodos_resaltados
+nodos_pos <- nodos_pos %>%
+  mutate(
+    fontface = ifelse(label %in% nodos_resaltados, "bold", "plain")
+  )
+
+# Crear el gráfico final con geom_text_repel para las etiquetas personalizadas
+plot_2014 <- plot_base +
+  geom_text_repel(data = nodos_pos, aes(x = x, y = y, label = label, fontface = fontface), 
+                  box.padding = 0.3, max.overlaps = 10) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5)  # Centrar el título
+  )
+
+# Mostrar el gráfico
+plot_2014
 
 
+ggsave(filename = paste0("Output/", "Net_2014", ".png"),
+       res = 300,
+       width = 25,
+       height = 20,
+       units = 'cm',
+       scaling = 0.9,
+       device = ragg::agg_png)
 
 
+plot_base <- ggnet2(net_2019,
+                    size = 2, 
+                    shape = 15,
+                    max_size = 3,  
+                    edge.size = 0.5, 
+                    edge.color = "grey",
+                    node.color = "color_nodo",
+                    node.alpha = 1,
+                    label = FALSE)
+
+# Extraer las posiciones de los nodos y almacenarlas en un data frame
+nodos_pos <- plot_base$data
+
+# Agregar una columna de estilo para negrita y tamaño de fuente en función de nodos_resaltados
+nodos_pos <- nodos_pos %>%
+  mutate(
+    fontface = ifelse(label %in% nodos_resaltados, "bold", "plain")
+  )
+
+# Crear el gráfico final con geom_text_repel para las etiquetas personalizadas
+plot_2019 <- plot_base +
+  geom_text_repel(data = nodos_pos, aes(x = x, y = y, label = label, fontface = fontface), 
+                  box.padding = 0.3, max.overlaps = 10) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5)  # Centrar el título
+  )
+
+# Mostrar el gráfico
+plot_2019
+
+
+ggsave(filename = paste0("Output/", "Net_2019", ".png"),
+       res = 300,
+       width = 25,
+       height = 20,
+       units = 'cm',
+       scaling = 0.9,
+       device = ragg::agg_png)
+
+plot_base <- ggnet2(net_2023,
+                    size = 2, 
+                    shape = 15,
+                    max_size = 3,  
+                    edge.size = 0.5, 
+                    edge.color = "grey",
+                    node.color = "color_nodo",
+                    node.alpha = 1,
+                    label = FALSE)
+
+# Extraer las posiciones de los nodos y almacenarlas en un data frame
+nodos_pos <- plot_base$data
+
+# Agregar una columna de estilo para negrita y tamaño de fuente en función de nodos_resaltados
+nodos_pos <- nodos_pos %>%
+  mutate(
+    fontface = ifelse(label %in% nodos_resaltados, "bold", "plain")
+  )
+
+# Crear el gráfico final con geom_text_repel para las etiquetas personalizadas
+plot_2023 <- plot_base +
+  geom_text_repel(data = nodos_pos, aes(x = x, y = y, label = label, fontface = fontface), 
+                  box.padding = 0.3, max.overlaps = 10) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5)  # Centrar el título
+  )
+
+# Mostrar el gráfico
+plot_2023
+
+ggsave(filename = paste0("Output/", "Net_2023", ".png"),
+       res = 300,
+       width = 25,
+       height = 20,
+       units = 'cm',
+       scaling = 0.9,
+       device = ragg::agg_png)
+
+# Medidas de la red ----
+
+
+# Lista de grafos para cada año
+redes <- list(
+  "2014" = net_2014,
+  "2019" = net_2019,
+  "2023" = net_2023
+)
+
+# Crear un data frame para almacenar los resultados
+resultados <- data.frame(
+  anio = character(),
+  densidad = numeric(),
+  distancia_promedio = numeric(),
+  clustering_coef = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Iterar sobre cada red para calcular las métricas
+for (anio in names(redes)) {
+  grafo <- redes[[anio]]
+  
+  # Calcular densidad de la red
+  densidad <- edge_density(grafo, loops = FALSE)
+  
+  # Calcular distancia promedio (si la red es desconectada, el resultado será NA)
+  distancia_promedio <- mean_distance(grafo, directed = TRUE, unconnected = TRUE)
+  
+  # Calcular coeficiente de clustering global
+  clustering_coef <- transitivity(grafo, type = "global")
+  
+  # Agregar los resultados al data frame
+  resultados <- rbind(resultados, data.frame(
+    anio = anio,
+    densidad = densidad,
+    distancia_promedio = distancia_promedio,
+    clustering_coef = clustering_coef
+  ))
+}
+
+writexl::write_xlsx(resultados, "Output/Medidas_red.xlsx")
+
+# Centralidad de la red ----
+
+# Lista de redes por año 2014
+
+# Calcular grado de centralidad (degree centrality) 
+centralidad_grado <- igraph::degree(net_2014) 
+
+# Calcular centralidad de cercanía 
+centralidad_cercania <- igraph::closeness(net_2014, normalized = T) 
+
+# Calcular la centralidad de intermediación
+centralidad_intermediacion <- igraph::betweenness(net_2014, normalized = T)
+
+# Calcular la centralidad de vector propio
+centralidad_eigen <-igraph::eigen_centrality(net_2014)
+
+centralidades_2014 <- cbind(centralidad_grado,
+                       round(centralidad_cercania,3),
+                       round(centralidad_intermediacion,3),
+                       round(centralidad_eigen$vector,3)) 
+colnames(centralidades_2014) <- c("grado", "cercania", "intermediacion", "eigen")
+centralidades_2014 <- centralidades_2014 %>% as.data.frame() 
+centralidades_2014 <- centralidades_2014 %>% rownames_to_column(var = "nodo") %>%  
+  as_tibble() %>% 
+  arrange(desc(grado)) %>% 
+  slice(1:5) %>% 
+  mutate(ano=2014)
+
+centralidades_2014
+
+# Lista de redes por año 2019
+
+# Calcular grado de centralidad (degree centrality) 
+centralidad_grado <- igraph::degree(net_2019) 
+
+# Calcular centralidad de cercanía 
+centralidad_cercania <- igraph::closeness(net_2019, normalized = T) 
+
+# Calcular la centralidad de intermediación
+centralidad_intermediacion <- igraph::betweenness(net_2019, normalized = T)
+
+# Calcular la centralidad de vector propio
+centralidad_eigen <-igraph::eigen_centrality(net_2019)
+
+centralidades_2019 <- cbind(centralidad_grado,
+                            round(centralidad_cercania,3),
+                            round(centralidad_intermediacion,3),
+                            round(centralidad_eigen$vector,3)) 
+colnames(centralidades_2019) <- c("grado", "cercania", "intermediacion", "eigen")
+centralidades_2019 <- centralidades_2019 %>% as.data.frame() 
+centralidades_2019 <- centralidades_2019 %>% rownames_to_column(var = "nodo") %>%  
+  as_tibble() %>% 
+  arrange(desc(grado)) %>% 
+  slice(1:5) %>% 
+  mutate(ano=2019)
+
+centralidades_2019
+
+# Lista de redes por año 2023
+
+# Calcular grado de centralidad (degree centrality) 
+centralidad_grado <- igraph::degree(net_2023) 
+
+# Calcular centralidad de cercanía 
+centralidad_cercania <- igraph::closeness(net_2023, normalized = T) 
+
+# Calcular la centralidad de intermediación
+centralidad_intermediacion <- igraph::betweenness(net_2023, normalized = T)
+
+# Calcular la centralidad de vector propio
+centralidad_eigen <-igraph::eigen_centrality(net_2023)
+
+centralidades_2023 <- cbind(centralidad_grado,
+                            round(centralidad_cercania,3),
+                            round(centralidad_intermediacion,3),
+                            round(centralidad_eigen$vector,3)) 
+colnames(centralidades_2023) <- c("grado", "cercania", "intermediacion", "eigen")
+centralidades_2023 <- centralidades_2023 %>% as.data.frame() 
+centralidades_2023 <- centralidades_2023 %>% rownames_to_column(var = "nodo") %>%  
+  as_tibble() %>% 
+  arrange(desc(grado)) %>% 
+  slice(1:5) %>% 
+  mutate(ano=2023)
+
+centralidades_2023
+
+tabla_centralidad <- centralidades_2014 %>% bind_rows(centralidades_2019) %>% bind_rows(centralidades_2023)
+
+writexl::write_xlsx(tabla_centralidad, "Output/Tabla_centralidades.xlsx")
