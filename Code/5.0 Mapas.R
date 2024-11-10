@@ -1,11 +1,5 @@
 # Prueba con OpenCage ----------------------------------------------------------
-# install.packages("dplyr")
-# install.packages("opencage")
-# install.packages("leaflet")
 
-library(dplyr)
-library(opencage)
-library(leaflet)
 
 ## Cargar datos y preparar la base para extraer coordenadas ----------------
 

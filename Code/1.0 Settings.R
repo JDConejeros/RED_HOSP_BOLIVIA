@@ -1,3 +1,4 @@
+# Ajuste de paquetes
 
 
 # Limpiamos el enviroment y desactivamos la notación científica 
@@ -23,5 +24,6 @@ settings_packages(
              "ggraph", "tidygraph", "GGally", "texreg", "ggrepel",
              "igraph", "network", "sna", "ergm", # FUNDAMENTALES
              "ggmcmc", "patchwork", "DT", "ggnetwork", "visNetwork",
-             "kableExtra", "knitr", "openxlsx", "tidyr", "janitor",)
+             "kableExtra", "knitr", "openxlsx", "tidyr", "janitor",
+             "opencage", "leaflet")
 )
