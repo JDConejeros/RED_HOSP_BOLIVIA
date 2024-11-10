@@ -215,6 +215,9 @@ openxlsx::write.xlsx(tasas, file = "Output/tasas.xlsx")
 
 openxlsx::write.xlsx(tasa1, file = "Output/tasas_ajustadas.xlsx")
 
+
+## Calculo de totales por año
+
 a <- enviados %>% 
   group_by(anio) %>% 
   summarise(n1=n())
@@ -225,6 +228,7 @@ b <- recibidos %>%
 
 a <- a %>% left_join(b, by="anio") %>% 
   summarise(total=n1+n2)
+
 
 ## Conteos variables secundarias -----------------------------------------------
 anio_e <- enviados %>%
@@ -263,6 +267,7 @@ edad_r <- recibidos %>%
   summarise(media=mean(edad, na.rm=TRUE)
   )
 
+ # Unir en lista
 lista2 <- list("Año_enviados"   = anio_e,
                "Sexo_enviados"  = sexo_e,
                "Edad_enviados"  = edad_e,
@@ -270,6 +275,7 @@ lista2 <- list("Año_enviados"   = anio_e,
                "Sexo_recibidos" = sexo_r,
                "Edad_recibidos" = edad_r)
 
+ # Exportar lista
 openxlsx::write.xlsx(lista2, file = "Output/variables.xlsx")
 
 
