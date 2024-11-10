@@ -80,7 +80,7 @@ plot_2014 <- plot_base +
 plot_2014
 
 
-ggsave(filename = paste0("Output/", "Net_2014", ".png"),
+ggsave(filename = paste0("Output/redes/", "Net_2014", ".png"),
        res = 300,
        width = 25,
        height = 20,
@@ -121,7 +121,7 @@ plot_2019 <- plot_base +
 plot_2019
 
 
-ggsave(filename = paste0("Output/", "Net_2019", ".png"),
+ggsave(filename = paste0("Output/redes/", "Net_2019", ".png"),
        res = 300,
        width = 25,
        height = 20,
@@ -160,7 +160,7 @@ plot_2023 <- plot_base +
 # Mostrar el gráfico
 plot_2023
 
-ggsave(filename = paste0("Output/", "Net_2023", ".png"),
+ggsave(filename = paste0("Output/redes/", "Net_2023", ".png"),
        res = 300,
        width = 25,
        height = 20,
@@ -209,7 +209,7 @@ for (anio in names(redes)) {
   ))
 }
 
-writexl::write_xlsx(resultados, "Output/Medidas_red.xlsx")
+writexl::write_xlsx(resultados, "Output/redes/Medidas_red.xlsx")
 
 
 ## Centralidad de la red -------------------------------------------------------
@@ -232,6 +232,7 @@ centralidades_2014 <- cbind(centralidad_grado,
                             round(centralidad_cercania,3),
                             round(centralidad_intermediacion,3),
                             round(centralidad_eigen$vector,3)) 
+
 colnames(centralidades_2014) <- c("grado", "cercania", "intermediacion", "eigen")
 centralidades_2014 <- centralidades_2014 %>% as.data.frame() 
 centralidades_2014 <- centralidades_2014 %>% rownames_to_column(var = "nodo") %>%  
@@ -260,6 +261,7 @@ centralidades_2019 <- cbind(centralidad_grado,
                             round(centralidad_cercania,3),
                             round(centralidad_intermediacion,3),
                             round(centralidad_eigen$vector,3)) 
+
 colnames(centralidades_2019) <- c("grado", "cercania", "intermediacion", "eigen")
 centralidades_2019 <- centralidades_2019 %>% as.data.frame() 
 centralidades_2019 <- centralidades_2019 %>% rownames_to_column(var = "nodo") %>%  
@@ -288,6 +290,7 @@ centralidades_2023 <- cbind(centralidad_grado,
                             round(centralidad_cercania,3),
                             round(centralidad_intermediacion,3),
                             round(centralidad_eigen$vector,3)) 
+
 colnames(centralidades_2023) <- c("grado", "cercania", "intermediacion", "eigen")
 centralidades_2023 <- centralidades_2023 %>% as.data.frame() 
 centralidades_2023 <- centralidades_2023 %>% rownames_to_column(var = "nodo") %>%  
@@ -300,4 +303,4 @@ centralidades_2023
 
 tabla_centralidad <- centralidades_2014 %>% bind_rows(centralidades_2019) %>% bind_rows(centralidades_2023)
 
-writexl::write_xlsx(tabla_centralidad, "Output/Tabla_centralidades.xlsx")
+writexl::write_xlsx(tabla_centralidad, "Output/redes/Tabla_centralidades.xlsx")

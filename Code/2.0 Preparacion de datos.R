@@ -90,8 +90,69 @@ colnames(enviados)
 colnames(recibidos)
 
  # Exportar todas las tablas
-haven::write_dta(enviados, "Output/BBDD_ref_enviadas_v1.dta")
-haven::write_dta(recibidos, "Output/BBDD_ref_recibidas_v1.dta")
-writexl::write_xlsx(enviados, "Output/BBDD_ref_enviadas_v1.xlsx")
-writexl::write_xlsx(recibidos, "Output/BBDD_ref_recibidas_v1.xlsx")
+
+stop("Lo siguiente son las coords y exportar tablas")
+
+haven::write_dta(enviados, "Output/bases/BBDD_ref_enviadas_v1.dta")
+haven::write_dta(recibidos, "Output/bases/BBDD_ref_recibidas_v1.dta")
+writexl::write_xlsx(enviados, "Output/bases/BBDD_ref_enviadas_v1.xlsx")
+writexl::write_xlsx(recibidos, "Output/bases/BBDD_ref_recibidas_v1.xlsx")
+
+
+
+## Extraer nombres de cada hospital --------------------------------------------
+
+bd1 <- enviados_hosp %>% select(centro = nombre_ajustado_emisor) %>% distinct()
+bd2 <- recibidos_hosp %>% select(centro = nombre_ajustado_receptor) %>% distinct()
+bd3 <- enviados_hosp %>% select(centro = nombre_ajustado_transferido) %>% distinct()
+bd4 <- recibidos_hosp %>% select(centro = nombre_ajustado_referencia) %>% distinct()
+
+ # Unir bases de datos y eliminar duplicados para extraer nombres sin repetir
+coordenadas <- bind_rows(bd1, bd2, bd3, bd4) %>%
+  distinct(centro)
+
+ # Recodificar "otros"
+coordenadas <- coordenadas %>%
+  mutate(centro = case_when(centro %in% c("Clinica San Juan de Dios SERVIMED",
+                                          "Institutos de Salud",
+                                          "Instituto Nacional de Oftalmologia",
+                                          "Programa de Salud Renal",
+                                          "Policlinicos",
+                                          "Otro Centro de Salud",
+                                          "Otra Caja de Salud",
+                                          "Institutos de Salud",
+                                          "Centro de Salud Mercedes",
+                                          "Clinicas Privadas",
+                                          "Centros de Salud") ~ "Otros",
+                            centro == "San Juan de Dios Camargo" ~ "Hospital San Juan de Dios Camargo",
+                            TRUE ~ centro))
+
+ # Pegar pais a los hospitales para buscar en OpenCage
+coordenadas <- coordenadas %>% 
+  mutate(Dir_completa = paste(centro, ", Bolivia"))
+
+
+## Consulta OpenCage y unir coordenadas ----------------------------------------
+
+ # API key propia, utilizar la que obtuvimos de OpenCage
+Sys.setenv(OPENCAGE_KEY = "23032e9435c24a7595646aba8aa64361")
+
+ # Georeferenciar con la API
+coordenadas <- coordenadas %>%
+  filter(Dir_completa != "Otros") %>% oc_forward_df(placename = Dir_completa)
+
+ # Exportar nombres
+writexl::write_xlsx(coordenadas, "Output/bases/coordenadas.xlsx")
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -25,5 +25,5 @@ settings_packages(
              "igraph", "network", "sna", "ergm", # FUNDAMENTALES
              "ggmcmc", "patchwork", "DT", "ggnetwork", "visNetwork",
              "kableExtra", "knitr", "openxlsx", "tidyr", "janitor",
-             "opencage", "leaflet")
+             "opencage", "leaflet", "tibble")
 )

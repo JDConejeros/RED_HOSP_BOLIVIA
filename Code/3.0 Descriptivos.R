@@ -32,7 +32,7 @@ tab1 <- tab1 %>%
 # Unir en una lista y exportarlo como excel de 2 hojas
 lista1 <- list("Enviados" = tab1, "Recibidos" = tab2)
 
-openxlsx::write.xlsx(lista1, file = "Output/ingresos.xlsx")
+openxlsx::write.xlsx(lista1, file = "Output/conteos/ingresos.xlsx")
 
 
 ## Tablas de conteo pareadas, agrupando por año 
@@ -51,7 +51,7 @@ conteo2 <- filter(recibidos, estatico == c("Trasladado")) %>%
 # Unir en una lista y exportarlo como excel de 2 hojas
 lista1 <- list("Enviados" = conteo1, "Recibidos" = conteo2)
 
-openxlsx::write.xlsx(lista1, file = "Output/conteos.xlsx")
+openxlsx::write.xlsx(lista1, file = "Output/conteos/conteos.xlsx")
 
 
 ## Tasas -----------------------------------------------------------------------
@@ -87,9 +87,9 @@ tasas <- tasas %>% mutate(total = transferidos + referidos,
 
 
 
-openxlsx::write.xlsx(tasas, file = "Output/tasas.xlsx")
+openxlsx::write.xlsx(tasas, file = "Output/conteos/tasas.xlsx")
 
-openxlsx::write.xlsx(tasa1, file = "Output/tasas_ajustadas.xlsx")
+openxlsx::write.xlsx(tasa1, file = "Output/conteos/tasas_ajustadas.xlsx")
 
 
 ## Calculo de totales por año
@@ -152,7 +152,7 @@ lista2 <- list("Año_enviados"   = anio_e,
                "Edad_recibidos" = edad_r)
 
 # Exportar lista
-openxlsx::write.xlsx(lista2, file = "Output/variables.xlsx")
+openxlsx::write.xlsx(lista2, file = "Output/conteos/variables.xlsx")
 
 
 
