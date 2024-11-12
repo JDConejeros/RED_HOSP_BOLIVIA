@@ -1,5 +1,22 @@
 # Analisis descriptivos
 
+## Cargamos los settings -------------------------------------------------------
+source("Code/1.0 Settings.R")
+
+## Cargar bases de datos -------------------------------------------------------
+
+## Bases completas
+enviados  <- rio::import("Output/bases/BBDD_ref_enviadas.dta")  
+recibidos  <- rio::import("Output/bases/BBDD_ref_recibidas.dta")  
+
+hosp <- c("Hospital Municipal Boliviano Coreano",  
+                      "Hospital Municipal Boliviano Holandes",
+                      "Hospital Municipal Los Andes",
+                      "Hospital El Alto Norte",
+                      "Hospital El Alto Sur", 
+                      "Hospital de la Mujer", 
+                      "Hospital de Clinicas",
+                      "Hospital del Niño")
 
 ## Conteos ---------------------------------------------------------------------
 
@@ -16,21 +33,22 @@ tab2 <- recibidos %>%
   na.omit() 
 
 # Unir las sumas de las frecuencias de ambas tablas
-tab1 <- tab1 %>% left_join(tab2, by = c("eess_emisor" = "eess_receptor", "anio"))
+tabla1 <- tab1 %>% full_join(tab2, by = c("eess_emisor" = "eess_receptor", "anio"))
 
 # Sumar ambas frecuencias en una unica variable de pacientes totales en el hospital
-tab1$frecuencia <- rowSums(tab1[, c("frecuencia.x", "frecuencia.y")], na.rm = TRUE) 
+tabla1$frecuencia <- rowSums(tabla1[, c("frecuencia.x", "frecuencia.y")], na.rm = TRUE) 
 
 # Eliminar las frecuencias individuales
-tab1 <- tab1 %>% select(-c("frecuencia.x", "frecuencia.y"))
+tabla1 <- tabla1 %>% select(-c("frecuencia.x", "frecuencia.y")) 
 
 # Pivotear (girar) los datos para separar frecuencias por año
-tab1 <- tab1 %>% 
+tabla1 <- tabla1 %>% 
   pivot_wider(names_from = anio,
-              values_from = frecuencia)
+              values_from = frecuencia) %>% 
+  select(1,4,2,3)
 
 # Unir en una lista y exportarlo como excel de 2 hojas
-lista1 <- list("Enviados" = tab1, "Recibidos" = tab2)
+lista1 <- list("Resumen"=tabla1, "Enviados" = tab1, "Recibidos" = tab2)
 
 openxlsx::write.xlsx(lista1, file = "Output/conteos/ingresos.xlsx")
 

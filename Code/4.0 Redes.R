@@ -45,7 +45,8 @@ nodos_resaltados <- c("Hospital Municipal Boliviano Coreano",
                       "Hospital El Alto Norte",
                       "Hospital El Alto Sur", 
                       "Hospital de la Mujer", 
-                      "Hospital de Clinicas")
+                      "Hospital de Clinicas",
+                      "Hospital del Niño")
 
 
 plot_base <- ggnet2(net_2014,
