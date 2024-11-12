@@ -1,11 +1,11 @@
 # Ajuste de paquetes
 
-
+## Enviroment ------
 # Limpiamos el enviroment y desactivamos la notación científica 
 rm(list = ls())
 options(scipen = 999)
 
-
+## Packages ------
 # Cargamos las librerías que utilizaremos en el análisis
 settings_packages <- function(packages){
   # Cargamos las tablas de datos
@@ -20,10 +20,19 @@ settings_packages <- function(packages){
 }
 
 settings_packages(
-  packages=c("readxl", "dplyr", "broom", "ggplot2", "jtools", 
+  packages=c("readxl", "dplyr", "broom", "ggplot2", "jtools", "stringr", "lubridate",
              "ggraph", "tidygraph", "GGally", "texreg", "ggrepel",
              "igraph", "network", "sna", "ergm", # FUNDAMENTALES
              "ggmcmc", "patchwork", "DT", "ggnetwork", "visNetwork",
              "kableExtra", "knitr", "openxlsx", "tidyr", "janitor",
              "opencage", "leaflet", "tibble")
 )
+
+## Funciones----
+
+contar_na <- function(df) {
+  sapply(df, function(x) sum(is.na(x))) %>% as.data.frame() %>% 
+    rownames_to_column(var = "Variable") %>% 
+    rename(NA_Count = ".")
+}
+
