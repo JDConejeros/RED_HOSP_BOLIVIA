@@ -6,8 +6,8 @@ source("Code/1.0 Settings.R")
 ## Cargar bases de datos -------------------------------------------------------
 
 ## Bases completas
-enviados  <- rio::import("Output/bases/BBDD_ref_enviadas.dta")  
-recibidos  <- rio::import("Output/bases/BBDD_ref_recibidas.dta")  
+enviados  <- rio::import("Output/bases/BBDD_ref_enviadas.rds")  
+recibidos  <- rio::import("Output/bases/BBDD_ref_recibidas.rds")  
 
 hosp <- c("Hospital Municipal Boliviano Coreano",  
                       "Hospital Municipal Boliviano Holandes",
@@ -18,7 +18,7 @@ hosp <- c("Hospital Municipal Boliviano Coreano",
                       "Hospital de Clinicas",
                       "Hospital del Niño")
 
-## Conteos ---------------------------------------------------------------------
+## Ingresos hospitalarios ---------------------------------------------------------------------
 
 ## Ingresados por año segun hospital y año
 
@@ -52,29 +52,84 @@ lista1 <- list("Resumen"=tabla1, "Enviados" = tab1, "Recibidos" = tab2)
 
 openxlsx::write.xlsx(lista1, file = "Output/conteos/ingresos.xlsx")
 
+## Descriptivos variables relevantes ----------------------------------------------- 
 
-## Tablas de conteo pareadas, agrupando por año 
-# (filtro para solo transferencias entre hospitales)
+anio_e <- enviados %>%
+  group_by(var=anio) %>%
+  summarise(frecuencia = n()
+  )  %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia)) %>% 
+  mutate(tipo="enviados")
 
-conteo1 <- filter(enviados, estatico == c("Trasladado")) %>%
-  group_by(anio, eess_emisor, transferido_a) %>%
-  summarise(Frecuencia = n()) %>%
-  na.omit() 
+sexo_e <- enviados %>%
+  group_by(var=sexo) %>%
+  summarise(frecuencia = n()
+  ) %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia)) %>% 
+  mutate(tipo="enviados")
 
-conteo2 <- filter(recibidos, estatico == c("Trasladado")) %>%
-  group_by(anio, eess_receptor, referencia_de) %>%
-  summarise(Frecuencia = n()) %>%
-  na.omit()
+edad_e <- enviados %>%
+  summarise(prop=mean(edad, na.rm=TRUE)
+  ) %>% 
+  mutate(var="Edad") %>% 
+  mutate(frecuencia=nrow(enviados)) %>% 
+  mutate(tipo="enviados") %>% 
+  select(2,3,1,4)
 
-# Unir en una lista y exportarlo como excel de 2 hojas
-lista1 <- list("Enviados" = conteo1, "Recibidos" = conteo2)
+nivel_e <- enviados %>%
+  group_by(var=transferido_a_nivel) %>%
+  summarise(frecuencia = n()
+  ) %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia)) %>% 
+  mutate(tipo="recibidos")
 
-openxlsx::write.xlsx(lista1, file = "Output/conteos/conteos.xlsx")
 
+anio_r <- recibidos %>%
+  group_by(var=anio) %>%
+  summarise(frecuencia = n()
+  ) %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia)) %>% 
+  mutate(tipo="recibidos")
+
+sexo_r <- recibidos %>%
+  group_by(var=sexo) %>%
+  summarise(frecuencia = n()
+  ) %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia)) %>% 
+  mutate(tipo="recibidos")
+
+edad_r <- recibidos %>%
+  summarise(prop=mean(edad, na.rm=TRUE)
+  ) %>% 
+  mutate(var="Edad") %>% 
+  mutate(frecuencia=nrow(recibidos)) %>% 
+  mutate(tipo="recibidos") %>% 
+  select(2,3,1,4)
+
+nivel_r <- recibidos %>%
+  group_by(var=recibido_de_nivel) %>%
+  summarise(frecuencia = n()
+  ) %>% 
+  ungroup() %>% 
+  mutate(prop=frecuencia/sum(frecuencia)) %>% 
+  mutate(tipo="recibidos")
+
+var_e <- rbind(anio_e, sexo_e, edad_e, nivel_e)
+var_r <- rbind(anio_r, sexo_r, edad_r, nivel_r)
+
+tabla2 <- var_e %>% left_join(var_r, by="var")
+
+# Exportar lista
+openxlsx::write.xlsx(tabla2, file = "Output/conteos/freq_variables.xlsx")
 
 ## Tasas -----------------------------------------------------------------------
 
-tasa1 <- filter(enviados, estatico == c("Trasladado")) %>%
+tasa1 <- filter(enviados, estatico == c("Trasladado a otro centro")) %>%
   group_by(anio, eess_emisor) %>%
   summarise(transferidos = n()
   ) %>% 
@@ -82,7 +137,7 @@ tasa1 <- filter(enviados, estatico == c("Trasladado")) %>%
   rename(hospital = eess_emisor) %>% 
   rename(n = transferidos)
 
-tasa2 <- filter(recibidos, estatico == c("Trasladado")) %>%
+tasa2 <- filter(recibidos, estatico == c("Trasladado a otro centro")) %>%
   group_by(anio, eess_receptor) %>%
   summarise(referidos = n()
   ) %>% 
@@ -124,53 +179,6 @@ a <- a %>% left_join(b, by="anio") %>%
   summarise(total=n1+n2)
 
 
-## Conteos variables secundarias -----------------------------------------------
-anio_e <- enviados %>%
-  group_by(anio) %>%
-  summarise(frecuencia = n()
-  )  %>% 
-  ungroup() %>% 
-  mutate(prop=frecuencia/sum(frecuencia))
-
-sexo_e <- enviados %>%
-  group_by(sexo) %>%
-  summarise(frecuencia = n()
-  ) %>% 
-  ungroup() %>% 
-  mutate(prop=frecuencia/sum(frecuencia))
-
-edad_e <- enviados %>%
-  summarise(media=mean(edad, na.rm=TRUE)
-  ) 
-
-anio_r <- recibidos %>%
-  group_by(anio) %>%
-  summarise(frecuencia = n()
-  ) %>% 
-  ungroup() %>% 
-  mutate(prop=frecuencia/sum(frecuencia))
-
-sexo_r <- recibidos %>%
-  group_by(sexo) %>%
-  summarise(frecuencia = n()
-  ) %>% 
-  ungroup() %>% 
-  mutate(prop=frecuencia/sum(frecuencia))
-
-edad_r <- recibidos %>%
-  summarise(media=mean(edad, na.rm=TRUE)
-  )
-
-# Unir en lista
-lista2 <- list("Año_enviados"   = anio_e,
-               "Sexo_enviados"  = sexo_e,
-               "Edad_enviados"  = edad_e,
-               "Año_recibidos"  = anio_r,
-               "Sexo_recibidos" = sexo_r,
-               "Edad_recibidos" = edad_r)
-
-# Exportar lista
-openxlsx::write.xlsx(lista2, file = "Output/conteos/variables.xlsx")
 
 
 
@@ -183,4 +191,24 @@ matriz_transferencias <- conteo1 %>%
 matriz_referencias <- conteo2 %>%
   select(anio, eess_receptor, referencia_de, Frecuencia) %>%
   pivot_wider(names_from = referencia_de, values_from = Frecuencia, values_fill = 0)
+
+
+
+## Tablas de conteo pareadas, agrupando por año 
+# (filtro para solo transferencias entre hospitales)
+
+conteo1 <- filter(enviados, estatico == c("Trasladado")) %>%
+  group_by(anio, eess_emisor, transferido_a) %>%
+  summarise(Frecuencia = n()) %>%
+  na.omit() 
+
+conteo2 <- filter(recibidos, estatico == c("Trasladado")) %>%
+  group_by(anio, eess_receptor, referencia_de) %>%
+  summarise(Frecuencia = n()) %>%
+  na.omit()
+
+# Unir en una lista y exportarlo como excel de 2 hojas
+lista1 <- list("Enviados" = conteo1, "Recibidos" = conteo2)
+
+openxlsx::write.xlsx(lista1, file = "Output/conteos/conteos.xlsx")
 

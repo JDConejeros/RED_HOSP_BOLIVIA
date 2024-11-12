@@ -181,18 +181,10 @@ haven::write_dta(coordenadas, "Output/bases/georeferenciacion_hospitales.dta")
 
 haven::write_dta(enviados, "Output/bases/BBDD_ref_enviadas.dta")
 haven::write_dta(recibidos, "Output/bases/BBDD_ref_recibidas.dta")
+
+saveRDS(enviados, file="Output/bases/BBDD_ref_enviadas.rds")
+saveRDS(recibidos, "Output/bases/BBDD_ref_recibidas.rds")
+
 writexl::write_xlsx(enviados, "Output/bases/BBDD_ref_enviadas.xlsx")
 writexl::write_xlsx(recibidos, "Output/bases/BBDD_ref_recibidas.xlsx")
-
-
-
-
-
-
-
-
-
-
-
-
 
