@@ -154,14 +154,15 @@ coordenadas <- coordenadas %>%
                             TRUE ~ centro))
 
 # Pegar pais a los hospitales para buscar en OpenCage
-coordenadas <- coordenadas %>% 
-  mutate(Dir_completa = paste0(centro))
+coordenadas <- coordenadas %>%
+  filter(!Dir_completa %in% c("Otros", "Sin Dato")) %>%
+  mutate(Dir_completa = paste0(centro,", ", mun, ", Bolivia"))
 
 
 ## Consulta OpenCage y unir coordenadas 
 
 # API key propia, utilizar la que obtuvimos de OpenCage
-Sys.setenv(OPENCAGE_KEY = "23032e9435c24a7595646aba8aa64361") # encriptar este key cuando hagamos el envio de estos códigos 
+Sys.setenv(OPENCAGE_KEY = "") # encriptar este key cuando hagamos el envio de estos códigos 
 
 # Georeferenciar con la API
 coordenadas <- coordenadas %>%
@@ -170,12 +171,20 @@ coordenadas <- coordenadas %>%
 # Filtramos los que no encontramos data
 coordenadas_na <- coordenadas %>% filter(is.na(oc_formatted))
 
-# Buscar georeferenciación con la API de google maps, también puede ser OSM
-# Pato
+# Georeferenciación con la API de google maps
+api_key <- ""
+register_google(api_key, write = TRUE)
+
+# Consulta solo para NA
+coordenadas_na <- coordenadas_na[,1:3] %>% mutate_geocode(location = Dir_completa, countrycodes = "BO")
+
+#Consulta completa
+coordenadas_gg <- coordenadas[,1:3] %>% mutate_geocode(location = Dir_completa, countrycodes = "BO")
 
 # Exportar nombres
 writexl::write_xlsx(coordenadas, "Output/bases/georeferenciacion_hospitales.xlsx")
-haven::write_dta(coordenadas, "Output/bases/georeferenciacion_hospitales.dta")
+writexl::write_xlsx(coordenadas_na, "Output/bases/georeferenciacion_hospitales_perdidos.xlsx")
+writexl::write_xlsx(coordenadas_gg, "Output/bases/georeferenciacion_google.xlsx")
 
 ## Data Productos --------------------------------------------
 
