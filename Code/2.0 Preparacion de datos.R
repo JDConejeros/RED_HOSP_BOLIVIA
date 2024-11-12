@@ -175,11 +175,16 @@ coordenadas_na <- coordenadas %>% filter(is.na(oc_formatted))
 api_key <- ""
 register_google(api_key, write = TRUE)
 
+# Consulta solo para NA
 coordenadas_na <- coordenadas_na[,1:3] %>% mutate_geocode(location = Dir_completa, countrycodes = "BO")
+
+#Consulta completa
+coordenadas_gg <- coordenadas[,1:3] %>% mutate_geocode(location = Dir_completa, countrycodes = "BO")
 
 # Exportar nombres
 writexl::write_xlsx(coordenadas, "Output/bases/georeferenciacion_hospitales.xlsx")
 writexl::write_xlsx(coordenadas_na, "Output/bases/georeferenciacion_hospitales_perdidos.xlsx")
+writexl::write_xlsx(coordenadas_gg, "Output/bases/georeferenciacion_google.xlsx")
 
 ## Data Productos --------------------------------------------
 
