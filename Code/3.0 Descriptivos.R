@@ -129,41 +129,70 @@ openxlsx::write.xlsx(tabla2, file = "Output/conteos/freq_variables.xlsx")
 
 ## Tasas -----------------------------------------------------------------------
 
+tasa0a <- filter(enviados, estatico == c("Trasladado a otro centro")) %>%
+  group_by(anio) %>%
+  summarise(transferidos = n()
+  ) %>% 
+  mutate(tipo = "Transferidos") %>% 
+  rename(n = transferidos) %>% 
+  ungroup()
+
+tasa0b <- filter(recibidos, estatico == c("Trasladado a otro centro")) %>%
+  group_by(anio) %>%
+  summarise(referido= n()
+  ) %>% 
+  mutate(tipo = "Referidos") %>% 
+  rename(n = referido) %>% 
+  ungroup()
+
+
 tasa1 <- filter(enviados, estatico == c("Trasladado a otro centro")) %>%
   group_by(anio, eess_emisor) %>%
   summarise(transferidos = n()
   ) %>% 
-  mutate(tipo = "Transferido") %>% 
+  mutate(tipo = "Transferidos") %>% 
   rename(hospital = eess_emisor) %>% 
-  rename(n = transferidos)
+  rename(n = transferidos) %>% 
+  ungroup()
 
 tasa2 <- filter(recibidos, estatico == c("Trasladado a otro centro")) %>%
   group_by(anio, eess_receptor) %>%
   summarise(referidos = n()
   ) %>% 
-  mutate(tipo = "Referido") %>% 
+  mutate(tipo = "Referidos") %>% 
   rename(hospital = eess_receptor) %>% 
-  rename(n = referidos)
+  rename(n = referidos) %>% 
+  ungroup()
 
-tasa1 <- tasa1 %>% bind_rows(tasa2)
-## DUDAS ----
-## No se que objetivo tiene esta union, se me hace reduntante unir datos de la
-## tasa2 con datos de la tasa2 pero usando año como identificador
-tasas <- left_join(tasa1, tasa2, by = c("anio"))
+tabla_tasa0 <- tasa0a %>% 
+  bind_rows(tasa0b) %>% 
+  pivot_wider(names_from = tipo,
+              values_from = n) %>% 
+  select(1,3,2) %>% 
+  mutate(hospital="Total")
+
+tabla_tasa <- tasa1 %>% 
+  bind_rows(tasa2) %>% 
+  pivot_wider(names_from = tipo,
+              values_from = n) %>% 
+  #filter(hospital %in% hosp) %>% 
+  arrange(hospital)
+
+tabla3 <-  tabla_tasa %>% bind_rows(tabla_tasa0)
 
 ## La union anterior deja sin funcionar este codigo
-tasas <- tasas %>% mutate(total = transferidos + referidos,
-                          tasa_ref = referidos / total,
-                          tasa_traf = transferidos / total,
-                          porc_ref = tasa_ref * 100,
-                          porc_traf = tasa_traf * 100)
+tabla3 <- tabla3 %>%
+  mutate(
+    Transferidos = replace_na(Transferidos, 0),  # Reemplaza NA por 0 en Transferidos
+    Referidos = replace_na(Referidos, 0),        # Reemplaza NA por 0 en Referidos
+    Ingresos = Transferidos + Referidos,
+    tasa_ref = Referidos / Ingresos,
+    tasa_traf = Transferidos / Ingresos,
+    porc_ref = tasa_ref * 100,
+    porc_traf = tasa_traf * 100
+  )
 
-
-
-openxlsx::write.xlsx(tasas, file = "Output/conteos/tasas.xlsx")
-
-openxlsx::write.xlsx(tasa1, file = "Output/conteos/tasas_ajustadas.xlsx")
-
+openxlsx::write.xlsx(tabla3, file = "Output/conteos/tasas.xlsx")
 
 ## Calculo de totales por año
 
