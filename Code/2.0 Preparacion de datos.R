@@ -172,7 +172,7 @@ coordenadas <- coordenadas %>%
 coordenadas_na <- coordenadas %>% filter(is.na(oc_formatted))
 
 # Georeferenciación con la API de google maps
-api_key <- ""
+api_key <- "" # Introducir API KEY para la extracción
 register_google(api_key, write = TRUE)
 
 # Consulta solo para NA
@@ -190,10 +190,13 @@ writexl::write_xlsx(coordenadas_gg, "Output/bases/georeferenciacion_google.xlsx"
 
 haven::write_dta(enviados, "Output/bases/BBDD_ref_enviadas.dta")
 haven::write_dta(recibidos, "Output/bases/BBDD_ref_recibidas.dta")
+haven::write_dta(coordenadas_gg, "Output/bases/Georeferenciacion_Hospitales.dta")
 
 saveRDS(enviados, file="Output/bases/BBDD_ref_enviadas.rds")
 saveRDS(recibidos, "Output/bases/BBDD_ref_recibidas.rds")
+saveRDS(coordenadas_gg, "Output/bases/Georeferenciacion_Hospitales.rds")
 
 writexl::write_xlsx(enviados, "Output/bases/BBDD_ref_enviadas.xlsx")
 writexl::write_xlsx(recibidos, "Output/bases/BBDD_ref_recibidas.xlsx")
+writexl::write_xlsx(coordenadas_gg, "Output/bases/Georeferenciacion_Hospitales.xlsx")
 
