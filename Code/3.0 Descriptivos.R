@@ -194,22 +194,7 @@ tabla3 <- tabla3 %>%
 
 openxlsx::write.xlsx(tabla3, file = "Output/conteos/tasas.xlsx")
 
-## Calculo de totales por año
-
-a <- enviados %>% 
-  group_by(anio) %>% 
-  summarise(n1=n())
-
-b <- recibidos %>% 
-  group_by(anio) %>% 
-  summarise(n2=n())
-
-a <- a %>% left_join(b, by="anio") %>% 
-  summarise(total=n1+n2)
-
-
-
-
+## Matriz de Flujo -----------------------------------------------------------------------
 
 # Matriz de flujo para transferencias
 matriz_transferencias <- conteo1 %>%
@@ -221,23 +206,22 @@ matriz_referencias <- conteo2 %>%
   select(anio, eess_receptor, referencia_de, Frecuencia) %>%
   pivot_wider(names_from = referencia_de, values_from = Frecuencia, values_fill = 0)
 
-
+## Datos de red -----------------------------------------------------------------------
 
 ## Tablas de conteo pareadas, agrupando por año 
 # (filtro para solo transferencias entre hospitales)
 
-conteo1 <- filter(enviados, estatico == c("Trasladado")) %>%
+conteo1 <- filter(enviados, estatico == c("Trasladado a otro centro")) %>%
   group_by(anio, eess_emisor, transferido_a) %>%
   summarise(Frecuencia = n()) %>%
   na.omit() 
 
-conteo2 <- filter(recibidos, estatico == c("Trasladado")) %>%
-  group_by(anio, eess_receptor, referencia_de) %>%
+conteo2 <- filter(recibidos, estatico == c("Trasladado a otro centro")) %>%
+  group_by(anio, eess_receptor, recibido_de) %>%
   summarise(Frecuencia = n()) %>%
   na.omit()
 
 # Unir en una lista y exportarlo como excel de 2 hojas
 lista1 <- list("Enviados" = conteo1, "Recibidos" = conteo2)
-
-openxlsx::write.xlsx(lista1, file = "Output/conteos/conteos.xlsx")
+openxlsx::write.xlsx(lista1, file = "Output/conteos/Redes.xlsx")
 
