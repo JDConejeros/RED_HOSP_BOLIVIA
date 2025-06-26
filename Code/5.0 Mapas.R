@@ -1,8 +1,8 @@
 # Georeferenciacion ----------
 
 source("Code/1.0 Settings.R")
-ggmap::register_google(key="AIzaSyBb9VrHdo8iOvw5KuwGuWbiFLkqR7pYD6w")
-#ggmap::register_stadiamaps(key="b8908535-0fbc-44be-a3f0-5bb5ee5c2890")
+ggmap::register_google(key="XXXXXXX")
+#ggmap::register_stadiamaps(key="XXXXXX")
 
 
 ## Descargamos los datos  ---------------------------------------------------------------------
